@@ -1,5 +1,4 @@
 import asyncio
-import json
 import sys
 
 class SubscriberClientProtocol(asyncio.Protocol):
@@ -40,16 +39,26 @@ class SubscriberClientProtocol(asyncio.Protocol):
 
 class tcp_client():
     def __init__(self, host : str, port : int, rcv_callback):
+        self.is_connected = False
         loop = asyncio.get_event_loop()
-        coro = loop.create_connection(lambda: SubscriberClientProtocol(loop, rcv_callback), host, port)
 
         self.protocol = asyncio.StreamReaderProtocol(asyncio.StreamReader())
         loop.connect_read_pipe(lambda: self.protocol, sys.stdin)
 
-        _, self.proto = loop.run_until_complete(coro)
+        try:
+            coro = loop.create_connection(lambda: SubscriberClientProtocol(loop, rcv_callback), host, port)
+            _, self.proto = loop.run_until_complete(coro)
+            self.is_connected = True
+        except ConnectionRefusedError as exp:
+            print(exp.strerror)
 
     async def _send_messages(self, msg):
         await self.proto.send_message(msg)
 
     def send_messages(self, msg):
+        if not self.is_connected:
+            return "client is not connected"
+
         asyncio.ensure_future(self._send_messages(msg=msg))
+
+        return None

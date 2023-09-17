@@ -4,7 +4,6 @@ from tcp_client import tcp_client
 
 import asyncio
 import json
-import sys
 
 # async def connect_stdin_stdout():
 #     loop = asyncio.get_event_loop()
