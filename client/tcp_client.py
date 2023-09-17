@@ -43,7 +43,7 @@ class tcp_client():
         loop = asyncio.get_event_loop()
 
         self.protocol = asyncio.StreamReaderProtocol(asyncio.StreamReader())
-        loop.connect_read_pipe(lambda: self.protocol, sys.stdin)
+        # loop.connect_read_pipe(lambda: self.protocol, sys.stdin)
 
         try:
             coro = loop.create_connection(lambda: SubscriberClientProtocol(loop, rcv_callback), host, port)
