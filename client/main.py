@@ -1,16 +1,10 @@
+#!/usr/bin/env python3
+
 from tcp_client import tcp_client
 
 import asyncio
 import json
 import sys
-
-async def feed_messages(protocol):
-    """ An example function that sends the same message repeatedly. """
-    message = json.dumps({'type': 'subscribe', 'channel': 'sensor'},
-                         separators=(',', ':'))
-    while True:
-        await protocol.send_message(message)
-        await asyncio.sleep(1)
 
 # async def connect_stdin_stdout():
 #     loop = asyncio.get_event_loop()
@@ -19,10 +13,9 @@ async def feed_messages(protocol):
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
 
-    clnt = tcp_client()
+    clnt = tcp_client('127.0.0.1', 10666, lambda data : print('Message received: {!r}'.format(data.decode())))
 
-    message = json.dumps({'type': 'subscribe', 'channel': 'sensor'},
-                            separators=(',', ':'))
+    message = json.dumps({'type': 'subscribe', 'channel': 'sensor'}, separators=(',', ':'))
 
     clnt.send_messages(message)
 

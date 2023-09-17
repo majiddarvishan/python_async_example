@@ -3,11 +3,12 @@ import json
 import sys
 
 class SubscriberClientProtocol(asyncio.Protocol):
-    def __init__(self, loop):
+    def __init__(self, loop, rcv_callback):
         self.transport = None
         self.loop = loop
         self.queue = asyncio.Queue()
         self._ready = asyncio.Event()
+        self.rcv_callback = rcv_callback
         asyncio.ensure_future(self._send_messages())
 
     async def _send_messages(self):
@@ -19,12 +20,7 @@ class SubscriberClientProtocol(asyncio.Protocol):
             print('Message sent: {!r}'.format(data))
 
     def connection_made(self, transport):
-        """ Upon connection send the message to the
-        server
-
-        A message has to have the following items:
-            type:       subscribe/unsubscribe
-            channel:    the name of the channel
+        """ Upon connection send the message to the server
         """
         self.transport = transport
         print("Connection made.")
@@ -35,15 +31,7 @@ class SubscriberClientProtocol(asyncio.Protocol):
         await self.queue.put(data)
 
     def data_received(self, data):
-        """ After sending a message we expect a reply
-        back from the server
-
-        The return message consist of three fields:
-            type:           subscribe/unsubscribe
-            channel:        the name of the channel
-            channel_count:  the amount of channels subscribed to
-        """
-        print('Message received: {!r}'.format(data.decode()))
+        self.rcv_callback(data)
 
     def connection_lost(self, exc):
         print('The server closed the connection')
@@ -51,18 +39,17 @@ class SubscriberClientProtocol(asyncio.Protocol):
         self.loop.stop()
 
 class tcp_client():
-    def __init__(self):
+    def __init__(self, host : str, port : int, rcv_callback):
         loop = asyncio.get_event_loop()
-        coro = loop.create_connection(lambda: SubscriberClientProtocol(loop), '127.0.0.1', 10666)
+        coro = loop.create_connection(lambda: SubscriberClientProtocol(loop, rcv_callback), host, port)
 
-        # reader = asyncio.StreamReader()
         self.protocol = asyncio.StreamReaderProtocol(asyncio.StreamReader())
         loop.connect_read_pipe(lambda: self.protocol, sys.stdin)
 
         _, self.proto = loop.run_until_complete(coro)
 
-    def send_messages(self, msg):
-        asyncio.ensure_future(self._send_messages(msg=msg))
-
     async def _send_messages(self, msg):
         await self.proto.send_message(msg)
+
+    def send_messages(self, msg):
+        asyncio.ensure_future(self._send_messages(msg=msg))
